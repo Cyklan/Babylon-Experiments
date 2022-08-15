@@ -1,1 +1,1 @@
-export { default as GameScene } from "./GameScene";
+export { default as GameScene, GameSceneProps } from "./GameScene";

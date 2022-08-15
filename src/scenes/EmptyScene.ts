@@ -1,5 +1,5 @@
 import { Engine, Scene } from "@babylonjs/core";
-import { GameScene } from "../model/game";
+import { GameScene, GameSceneProps } from "../model/game";
 
 export default class EmptyScene implements GameScene {
     public scene: Scene;
@@ -7,5 +7,6 @@ export default class EmptyScene implements GameScene {
     constructor(engine: Engine) {
         this.scene = new Scene(engine);        
     }
-    init: (engine: Engine, readyCallback?: (scene: GameScene) => void) => void;
+
+    async init(_: GameSceneProps) {}
 }

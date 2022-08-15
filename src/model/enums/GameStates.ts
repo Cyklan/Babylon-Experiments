@@ -1,4 +1,5 @@
 enum GameStates {
+    NONE,
     STARTUP,
     START,
     CUTSCENE,

@@ -3,8 +3,9 @@ import "@babylonjs/loaders/glTF";
 import "@babylonjs/core/Debug/debugLayer";
 import "@babylonjs/inspector";
 import { GameStates } from "./model/enums";
-import { EmptyScene, LoseScene, StartScene } from "./scenes";
 import { GameScene } from "./model/game";
+import { SceneManager } from "./scenes";
+import EmptyScene from "./scenes/EmptyScene";
 
 class App {
   private canvas: HTMLCanvasElement;
@@ -37,37 +38,21 @@ class App {
   }
 
   async main() {
-    await this.goToStart();
+    const sceneManager = new SceneManager();
+    this.engine.displayLoadingUI();
+    await sceneManager.init(
+      this.engine,
+      () => {
+        this.engine.hideLoadingUI();
+      },
+      this.updateState.bind(this)
+    );
+    this.engine.hideLoadingUI();
+
+    this.updateState(GameStates.START);
 
     this.engine.runRenderLoop(() => {
-      if (this.state !== GameStates.STARTUP) {
-        this.scene.scene.render();
-      }
-    });
-  }
-
-  async goToStart() {
-    this.setupScene(StartScene, GameStates.START);
-  }
-
-  async goToLose() {
-    this.setupScene(LoseScene, GameStates.LOSE);
-  }
-
-  setupScene(gameScene: new () => GameScene, gameState: GameStates) {
-    this.engine.displayLoadingUI();
-    this.scene.scene.detachControl();
-
-    new gameScene().init({
-      engine: this.engine,
-      readyCallback: (scene) => {
-        this.scene.scene.dispose();
-        this.scene = scene;
-        this.state = gameState;
-        this.engine.hideLoadingUI();
-        this.scene.scene.attachControl();
-      },
-      updateState: this.updateState,
+      sceneManager.render(this.state);
     });
   }
 

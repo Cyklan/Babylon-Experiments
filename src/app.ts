@@ -1,47 +1,76 @@
-import {
-  ArcRotateCamera,
-  Engine,
-  HemisphericLight,
-  MeshBuilder,
-  Scene,
-  Vector3,
-} from "@babylonjs/core";
+import { Engine, WebGPUEngine } from "@babylonjs/core";
 import "@babylonjs/loaders/glTF";
 import "@babylonjs/core/Debug/debugLayer";
 import "@babylonjs/inspector";
+import { GameStates } from "./model/enums";
+import { GameScene } from "./model/game";
+import { SceneManager } from "./scenes";
+import EmptyScene from "./scenes/EmptyScene";
 
 class App {
-  constructor() {
-    const canvas = document.getElementById("game") as HTMLCanvasElement
-    const engine = new Engine(canvas, true);
-    const scene = new Scene(engine);
+  private canvas: HTMLCanvasElement;
+  private scene: GameScene;
+  private engine: Engine;
 
-    const camera = new ArcRotateCamera(
-      "Camera",
-      Math.PI / 2,
-      Math.PI / 2,
-      2,
-      Vector3.Zero(),
-      scene
-    );
-    const light1 = new HemisphericLight("light1", new Vector3(1, 1, 0), scene);
-    const sphere = MeshBuilder.CreateSphere("sphere", { diameter: 1 }, scene);
+  private state: GameStates = GameStates.STARTUP;
+
+  constructor() {
+    this.canvas = document.getElementById("game") as HTMLCanvasElement;
+
+    this.init();
+  }
+
+  async init() {
+    if (navigator.gpu != null) {
+      const _engine = new WebGPUEngine(this.canvas);
+      await _engine.initAsync();
+      this.engine = _engine;
+    } else {
+      this.engine = new Engine(this.canvas, true);
+    }
+    this.scene = new EmptyScene(this.engine);
 
     window.addEventListener("keydown", (event) => {
       const { shiftKey, ctrlKey, keyCode } = event;
       // ctrl shift i
       if (shiftKey && ctrlKey && keyCode === 73) {
-        if (scene.debugLayer.isVisible()) {
-            scene.debugLayer.hide();
+        if (this.scene.scene.debugLayer.isVisible()) {
+          this.scene.scene.debugLayer.hide();
         } else {
-            scene.debugLayer.show();
+          this.scene.scene.debugLayer.show({
+            showExplorer: true,
+            embedMode: true,
+          });
         }
       }
     });
 
-    engine.runRenderLoop(() => {
-      scene.render();
+    this.main();
+  }
+
+  async main() {
+    const sceneManager = new SceneManager();
+    this.engine.displayLoadingUI();
+    await sceneManager.init(
+      this.engine,
+      () => {
+        this.engine.hideLoadingUI();
+      },
+      this.updateState.bind(this)
+    );
+    this.engine.hideLoadingUI();
+
+    this.updateState(GameStates.START);
+    const fpsLabel = document.getElementById("fps") as HTMLDivElement;
+
+    this.engine.runRenderLoop(() => {
+      sceneManager.render(this.state);
+      fpsLabel.innerHTML = this.engine.getFps().toFixed() + " fps";
     });
+  }
+
+  updateState(gameState: GameStates) {
+    this.state = gameState;
   }
 }
 

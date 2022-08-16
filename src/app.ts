@@ -1,4 +1,4 @@
-import { Engine } from "@babylonjs/core";
+import { Engine, WebGPUEngine } from "@babylonjs/core";
 import "@babylonjs/loaders/glTF";
 import "@babylonjs/core/Debug/debugLayer";
 import "@babylonjs/inspector";
@@ -16,7 +16,18 @@ class App {
 
   constructor() {
     this.canvas = document.getElementById("game") as HTMLCanvasElement;
-    this.engine = new Engine(this.canvas, true);
+
+    this.init();
+  }
+
+  async init() {
+    if (navigator.gpu != null) {
+      const _engine = new WebGPUEngine(this.canvas);
+      await _engine.initAsync();
+      this.engine = _engine;
+    } else {
+      this.engine = new Engine(this.canvas, true);
+    }
     this.scene = new EmptyScene(this.engine);
 
     window.addEventListener("keydown", (event) => {
@@ -50,9 +61,11 @@ class App {
     this.engine.hideLoadingUI();
 
     this.updateState(GameStates.START);
+    const fpsLabel = document.getElementById("fps") as HTMLDivElement;
 
     this.engine.runRenderLoop(() => {
       sceneManager.render(this.state);
+      fpsLabel.innerHTML = this.engine.getFps().toFixed() + " fps";
     });
   }
 

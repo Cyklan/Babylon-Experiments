@@ -2,6 +2,7 @@ const path = require("path");
 const fs = require("fs");
 const HtmlWebpackPlugin = require("html-webpack-plugin");
 const appDirectory = fs.realpathSync(process.cwd());
+require("dotenv").config()
 
 module.exports = {
   entry: path.resolve(appDirectory, "src/app.ts"), //path to the main .ts file
@@ -33,7 +34,8 @@ module.exports = {
   plugins: [
     new HtmlWebpackPlugin({
       inject: true,
-      template: path.resolve(appDirectory, "public/index.html"),
+      template: path.resolve(appDirectory, "public/index.ejs"),
+      originTrial: process.env.TOKEN
     }),
   ],
   mode: "development",

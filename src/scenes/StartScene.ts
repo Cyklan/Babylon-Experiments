@@ -40,7 +40,7 @@ export default class StartScene implements GameScene {
       .position({ top: "-14px" })
       .thickness(0)
       .verticalAlignment(Control.VERTICAL_ALIGNMENT_BOTTOM)
-      .onClick(() => this.switchGameState(GameStates.LOSE));
+      .onClick(() => this.switchGameState(GameStates.GAME));
 
     guiMenu.addControl(button.build());
   }

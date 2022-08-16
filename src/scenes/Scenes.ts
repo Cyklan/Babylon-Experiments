@@ -1,6 +1,7 @@
-import { StartScene, LoseScene } from ".";
+import { StartScene, LoseScene, IngameScene } from ".";
 
 export default Object.freeze({
     Start: StartScene,
-    Lose: LoseScene
+    Lose: LoseScene,
+    Ingame: IngameScene
 })

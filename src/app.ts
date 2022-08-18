@@ -1,4 +1,6 @@
 import { Color4, Engine, FreeCamera, HemisphericLight, Mesh, Scene, Vector3, WebGPUEngine } from "@babylonjs/core";
+import "@babylonjs/core/Debug/debugLayer";
+import "@babylonjs/inspector";
 
 export default class App {
   canvas!: HTMLCanvasElement;
@@ -24,7 +26,7 @@ export default class App {
       this.renderer = "webgl";
     }
     this.scene = new Scene(this.engine);
-    this.scene.clearColor = new Color4(0.1, 0.2, 0.3, 1.0);
+    this.scene.clearColor = new Color4(0.42, 0.68, 0.81, 1.0);
 
     const camera = new FreeCamera("camera", new Vector3(0, 5, -10), this.scene);
     camera.setTarget(Vector3.Zero());
@@ -38,7 +40,7 @@ export default class App {
 
     this.sphere.position.y = 2;
 
-    Mesh.CreateGround("ground", 6, 6, 2, this.scene);
+    Mesh.CreateGround("ground", 30, 30, 2, this.scene);
 
     document.getElementById("renderer-overlay")!.innerHTML += this.renderer;
     this.main();

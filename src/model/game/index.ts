@@ -1,1 +1,0 @@
-export { default as GameScene, GameSceneProps } from "./GameScene";

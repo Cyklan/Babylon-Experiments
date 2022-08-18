@@ -1,77 +1,22 @@
-import { Engine, WebGPUEngine } from "@babylonjs/core";
-import "@babylonjs/loaders/glTF";
-import "@babylonjs/core/Debug/debugLayer";
-import "@babylonjs/inspector";
-import { GameStates } from "./model/enums";
-import { GameScene } from "./model/game";
-import { SceneManager } from "./scenes";
-import EmptyScene from "./scenes/EmptyScene";
+import { Color4, Engine, Scene } from "@babylonjs/core";
 
-class App {
-  private canvas: HTMLCanvasElement;
-  private scene: GameScene;
-  private engine: Engine;
-
-  private state: GameStates = GameStates.STARTUP;
+export default class App {
+  canvas: HTMLCanvasElement;
+  engine: Engine;
+  scene: Scene;
 
   constructor() {
-    this.canvas = document.getElementById("game") as HTMLCanvasElement;
+    this.canvas = document.getElementById("app") as HTMLCanvasElement;
+    this.engine = new Engine(this.canvas, true);
+    this.scene = new Scene(this.engine);
+    this.scene.clearColor = new Color4(0.1, 0.2, 0.3, 1.0);
 
-    this.init();
+    this.main()
   }
 
-  async init() {
-    if (navigator.gpu != null) {
-      const _engine = new WebGPUEngine(this.canvas);
-      await _engine.initAsync();
-      this.engine = _engine;
-    } else {
-      this.engine = new Engine(this.canvas, true);
-    }
-    this.scene = new EmptyScene(this.engine);
-
-    window.addEventListener("keydown", (event) => {
-      const { shiftKey, ctrlKey, keyCode } = event;
-      // ctrl shift i
-      if (shiftKey && ctrlKey && keyCode === 73) {
-        if (this.scene.scene.debugLayer.isVisible()) {
-          this.scene.scene.debugLayer.hide();
-        } else {
-          this.scene.scene.debugLayer.show({
-            showExplorer: true,
-            embedMode: true,
-          });
-        }
-      }
-    });
-
-    this.main();
-  }
-
-  async main() {
-    const sceneManager = new SceneManager();
-    this.engine.displayLoadingUI();
-    await sceneManager.init(
-      this.engine,
-      () => {
-        this.engine.hideLoadingUI();
-      },
-      this.updateState.bind(this)
-    );
-    this.engine.hideLoadingUI();
-
-    this.updateState(GameStates.START);
-    const fpsLabel = document.getElementById("fps") as HTMLDivElement;
-
+  main = () => {
     this.engine.runRenderLoop(() => {
-      sceneManager.render(this.state);
-      fpsLabel.innerHTML = this.engine.getFps().toFixed() + " fps";
+      this.scene.render();
     });
-  }
-
-  updateState(gameState: GameStates) {
-    this.state = gameState;
-  }
+  };
 }
-
-new App();

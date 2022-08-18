@@ -1,4 +1,4 @@
-import { Color3, Color4, Engine, Scene } from "@babylonjs/core";
+import { Color4, Engine, Scene } from "@babylonjs/core";
 
 export default class App {
   canvas: HTMLCanvasElement;

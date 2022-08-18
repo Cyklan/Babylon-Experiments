@@ -1,6 +1,7 @@
-import { Color4, Engine, FreeCamera, HemisphericLight, Mesh, Scene, Vector3, WebGPUEngine } from "@babylonjs/core";
+import { CannonJSPlugin, Color4, Engine, FreeCamera, HemisphericLight, Mesh, PhysicsImpostor, Scene, Vector3, WebGPUEngine } from "@babylonjs/core";
 import "@babylonjs/core/Debug/debugLayer";
 import "@babylonjs/inspector";
+import CANNON from "cannon";
 
 export default class App {
   canvas!: HTMLCanvasElement;
@@ -28,6 +29,7 @@ export default class App {
     this.scene = new Scene(this.engine);
     this.scene.clearColor = new Color4(0.42, 0.68, 0.81, 1.0);
 
+    this.scene.enablePhysics(new Vector3(0, -9.81, 0), new CannonJSPlugin(true, 10, CANNON));
     const camera = new FreeCamera("camera", new Vector3(0, 5, -10), this.scene);
     camera.setTarget(Vector3.Zero());
 
@@ -36,11 +38,17 @@ export default class App {
     const light = new HemisphericLight("light", new Vector3(0, 1, 0), this.scene);
     light.intensity = .7;
 
-    this.sphere = Mesh.CreateSphere("sphere", 16, 2, this.scene);
+    this.sphere = Mesh.CreateCapsule("sphere", {}, this.scene);
 
-    this.sphere.position.y = 2;
+    this.scene.debugLayer.show({
+      overlay: true,
+    })
 
-    Mesh.CreateGround("ground", 30, 30, 2, this.scene);
+    this.sphere.position.y = 0.5;
+    this.sphere.physicsImpostor = new PhysicsImpostor(this.sphere, PhysicsImpostor.BoxImpostor, { mass: 1, restitution: 0 }, this.scene);
+
+    const ground = Mesh.CreateGround("ground", 30, 30, 2, this.scene);
+    ground.physicsImpostor = new PhysicsImpostor(ground, PhysicsImpostor.BoxImpostor, { mass: 0, restitution: .9 }, this.scene);
 
     document.getElementById("renderer-overlay")!.innerHTML += this.renderer;
     this.main();
@@ -48,16 +56,9 @@ export default class App {
 
   main = async () => {
     const fpsOverlay = document.getElementById("fps")
-    const speed = 1 / 120
     this.engine.runRenderLoop(() => {
       this.scene.render();
       fpsOverlay!.innerHTML = "FPS: " + this.engine.getFps().toFixed()
-      this.sphere.position.y += this.direction === "positive" ? speed : -speed;
-      if (this.sphere.position.y > 2) {
-        this.direction = "negative";
-      } else if (this.sphere.position.y < -2) {
-        this.direction = "positive";
-      }
     });
   };
 }

@@ -1,11 +1,13 @@
 import {
   Mesh,
   PhysicsImpostor,
+  Quaternion,
   Scene,
   TransformNode,
   UniversalCamera,
   Vector3,
 } from "@babylonjs/core";
+import PlayerInput from "./playerInput";
 
 export class Player extends TransformNode {
   scene: Scene;
@@ -13,12 +15,25 @@ export class Player extends TransformNode {
   cameraRoot!: TransformNode;
   yTilt!: TransformNode;
   camera!: UniversalCamera;
+  playerInput: PlayerInput;
+
+  moveDirection = Vector3.Zero();
+  horizontal = 0;
+  vertical = 0;
 
   constructor(name: string, scene: Scene) {
     super(name);
     this.scene = scene;
     this.initPlayer();
     this.initCamera();
+    this.playerInput = new PlayerInput(this.scene);
+
+    this.scene.registerBeforeRender(() => {
+      this.beforeRender();
+      this.updateCamera();
+    })
+
+    this.scene.registerAfterRender(this.afterRender)
   }
 
   private initPlayer() {
@@ -26,7 +41,7 @@ export class Player extends TransformNode {
     this.playerMesh.position.y = 0.5;
     this.playerMesh.physicsImpostor = new PhysicsImpostor(
       this.playerMesh,
-      PhysicsImpostor.BoxImpostor,
+      PhysicsImpostor.SphereImpostor,
       { mass: 1, restitution: 0 },
       this.scene
     );
@@ -53,6 +68,15 @@ export class Player extends TransformNode {
     this.scene.activeCamera = this.camera;
   }
 
+  private beforeRender() {
+    this.updatePosition();
+    this.playerMesh.moveWithCollisions(this.moveDirection);
+  }
+
+  private afterRender() {
+
+  }
+
   private updateCamera() {
     const cameraCenter = this.playerMesh.position.y + 2;
     this.cameraRoot.position = Vector3.Lerp(
@@ -65,12 +89,59 @@ export class Player extends TransformNode {
       0.4
     );
   }
+
+  private updatePosition() {
+    this.moveDirection = Vector3.Zero();
+    this.horizontal = this.playerInput.horizontal;
+    this.vertical = this.playerInput.vertical;
+
+    const forward = this.cameraRoot.forward;
+    const right = this.cameraRoot.right;
+    const correctedVertical = forward.scaleInPlace(this.vertical);
+    const correctedHorizontal = right.scaleInPlace(this.horizontal);
+
+    const move = correctedHorizontal.addInPlace(correctedVertical);
+    this.moveDirection = new Vector3(move.normalize().x, 0, move.normalize().z);
+
+    const inputAmplitude = this.inputMagnitude()
+
+    this.moveDirection = this.moveDirection.scaleInPlace(inputAmplitude * Player.CONSTANTS.SPEED);
+
+    const input = new Vector3(this.playerInput.horizontalAxis, 0, this.playerInput.verticalAxis);
+    if (input.length() === 0) return;
+
+    this.updateRotation();
+  }
+
+  private updateRotation() {
+    let angle = Math.atan2(this.playerInput.horizontalAxis, this.playerInput.verticalAxis);
+    angle += this.cameraRoot.rotation.y;
+    const target = Quaternion.FromEulerAngles(0, angle, 0);
+    this.playerMesh.rotationQuaternion = Quaternion.Slerp(
+      this.playerMesh.rotationQuaternion!, target, 10 * this.scene.deltaTime
+    )
+  }
+
+  /**
+   * clamping the input so that diagonal movement is not faster than horizontal or vertical
+   */
+  private inputMagnitude() {
+    const inputMag = Math.abs(this.horizontal) + Math.abs(this.vertical);
+    if (inputMag < 0) {
+      return 0;
+    } else if (inputMag > 1) {
+      return 1;
+    }
+    
+    return inputMag;
+  }
 }
 
 export namespace Player {
   export const CONSTANTS = {
     ORIGINAL_TILT: new Vector3(0.4, 0, 0),
     CAMERA_FOV: 0.47350045992678597,
-    CAMERA_DISTANCE: -15
+    CAMERA_DISTANCE: -15,
+    SPEED: .1
   };
 }

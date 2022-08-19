@@ -1,4 +1,4 @@
-import { CannonJSPlugin, Color4, Engine, FreeCamera, HemisphericLight, Mesh, PhysicsImpostor, Scene, Vector3, WebGPUEngine } from "@babylonjs/core";
+import { CannonJSPlugin, Color4, Engine, HemisphericLight, Mesh, PhysicsImpostor, Scene, Vector3, WebGPUEngine } from "@babylonjs/core";
 import "@babylonjs/core/Debug/debugLayer";
 import "@babylonjs/inspector";
 import CANNON from "cannon";
@@ -35,9 +35,9 @@ export default class App {
     const light = new HemisphericLight("light", new Vector3(0, 1, 0), this.scene);
     light.intensity = .7;
 
-    // this.scene.debugLayer.show({
-    //   overlay: true,
-    // })
+    this.scene.debugLayer.show({
+      overlay: true,
+    })
 
     const ground = Mesh.CreateGround("ground", 30, 30, 2, this.scene);
     ground.physicsImpostor = new PhysicsImpostor(ground, PhysicsImpostor.BoxImpostor, { mass: 0, restitution: .9 }, this.scene);

@@ -2,14 +2,15 @@ import { CannonJSPlugin, Color4, Engine, FreeCamera, HemisphericLight, Mesh, Phy
 import "@babylonjs/core/Debug/debugLayer";
 import "@babylonjs/inspector";
 import CANNON from "cannon";
+import { Player } from "./player";
 
 export default class App {
   canvas!: HTMLCanvasElement;
   engine!: Engine;
   scene!: Scene;
   public renderer!: "webgpu" | "webgl";
-  sphere!: Mesh;
   direction: "positive" | "negative" = "positive";
+  player!: Player;
 
   constructor() {
     this.init()
@@ -30,27 +31,21 @@ export default class App {
     this.scene.clearColor = new Color4(0.42, 0.68, 0.81, 1.0);
 
     this.scene.enablePhysics(new Vector3(0, -9.81, 0), new CannonJSPlugin(true, 10, CANNON));
-    const camera = new FreeCamera("camera", new Vector3(0, 5, -10), this.scene);
-    camera.setTarget(Vector3.Zero());
-
-    camera.attachControl(this.canvas, true);
 
     const light = new HemisphericLight("light", new Vector3(0, 1, 0), this.scene);
     light.intensity = .7;
 
-    this.sphere = Mesh.CreateCapsule("sphere", {}, this.scene);
-
-    this.scene.debugLayer.show({
-      overlay: true,
-    })
-
-    this.sphere.position.y = 0.5;
-    this.sphere.physicsImpostor = new PhysicsImpostor(this.sphere, PhysicsImpostor.BoxImpostor, { mass: 1, restitution: 0 }, this.scene);
+    // this.scene.debugLayer.show({
+    //   overlay: true,
+    // })
 
     const ground = Mesh.CreateGround("ground", 30, 30, 2, this.scene);
     ground.physicsImpostor = new PhysicsImpostor(ground, PhysicsImpostor.BoxImpostor, { mass: 0, restitution: .9 }, this.scene);
 
     document.getElementById("renderer-overlay")!.innerHTML += this.renderer;
+
+    this.player = new Player("player", this.scene);
+
     this.main();
   };
 

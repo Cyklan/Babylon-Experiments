@@ -35,10 +35,6 @@ export default class App {
     const light = new HemisphericLight("light", new Vector3(0, 1, 0), this.scene);
     light.intensity = .7;
 
-    this.scene.debugLayer.show({
-      overlay: true,
-    })
-
     const ground = Mesh.CreateGround("ground", 30, 30, 2, this.scene);
     ground.physicsImpostor = new PhysicsImpostor(ground, PhysicsImpostor.BoxImpostor, { mass: 0, restitution: .9 }, this.scene);
 
@@ -46,6 +42,7 @@ export default class App {
 
     this.player = new Player("player", this.scene);
 
+    this.registerInspector()
     this.main();
   };
 
@@ -56,4 +53,19 @@ export default class App {
       fpsOverlay!.innerHTML = "FPS: " + this.engine.getFps().toFixed()
     });
   };
+
+  registerInspector = () => {
+    window.addEventListener("keydown", (ev) => {
+      // Shift+Ctrl+Alt+I
+      if (ev.shiftKey && ev.ctrlKey && ev.keyCode === 73) {
+          if (this.scene.debugLayer.isVisible()) {
+              this.scene.debugLayer.hide();
+          } else {
+              this.scene.debugLayer.show({
+                overlay: true,
+              });
+          }
+      }
+  });
+  }
 }

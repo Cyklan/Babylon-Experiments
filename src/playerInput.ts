@@ -2,13 +2,16 @@ import { ActionManager, ExecuteCodeAction, Scalar, Scene } from "@babylonjs/core
 
 export default class PlayerInput {
   scene: Scene;
-  inputMap: any;
+  inputMap: Record<string, boolean>;
 
   public horizontal: number = 0;
   public vertical: number = 0;
 
   public horizontalAxis: number = 0;
   public verticalAxis: number = 0;
+
+  public jumping = false;
+  public dashing = false;
 
   constructor(scene: Scene) {
     this.scene = scene;
@@ -54,6 +57,18 @@ export default class PlayerInput {
     } else {
       this.horizontal = 0;
       this.horizontalAxis = 0;
+    }
+
+    if (this.inputMap[" "] && !this.jumping) {
+      this.jumping = true;
+    } else {
+      this.jumping = false;
+    }
+
+    if (this.inputMap["Shift"]) {
+      this.dashing = true;
+    } else {
+      this.dashing = false;
     }
   }
 }

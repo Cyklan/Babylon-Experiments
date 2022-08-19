@@ -1,8 +1,11 @@
 import {
+  Color3,
   Mesh,
   PhysicsImpostor,
   Quaternion,
+  Ray,
   Scene,
+  StandardMaterial,
   TransformNode,
   UniversalCamera,
   Vector3,
@@ -21,6 +24,17 @@ export class Player extends TransformNode {
   horizontal = 0;
   vertical = 0;
 
+  jumpCount = Player.CONSTANTS.JUMPS;
+
+  get deltaTime() {
+    return this.scene.getEngine().getDeltaTime() / 1000.0;
+  }
+
+  get isGrounded() {
+    return !this.floorRaycast(Vector3.Zero(), 1).equals(Vector3.Zero());
+
+  }
+
   constructor(name: string, scene: Scene) {
     super(name);
     this.scene = scene;
@@ -31,20 +45,23 @@ export class Player extends TransformNode {
     this.scene.registerBeforeRender(() => {
       this.beforeRender();
       this.updateCamera();
-    })
+    });
 
-    this.scene.registerAfterRender(this.afterRender)
+    this.scene.registerAfterRender(this.afterRender);
   }
 
   private initPlayer() {
-    this.playerMesh = Mesh.CreateCapsule("sphere", {}, this.scene);
+    this.playerMesh = Mesh.CreateBox("BOX", .5, this.scene);
     this.playerMesh.position.y = 0.5;
     this.playerMesh.physicsImpostor = new PhysicsImpostor(
       this.playerMesh,
-      PhysicsImpostor.SphereImpostor,
+      PhysicsImpostor.BoxImpostor,
       { mass: 1, restitution: 0 },
       this.scene
     );
+    const material = new StandardMaterial("playerMaterial", this.scene);
+    material.diffuseColor = new Color3(1, 0, 1);
+    this.playerMesh.material = material;
   }
 
   private initCamera() {
@@ -74,7 +91,6 @@ export class Player extends TransformNode {
   }
 
   private afterRender() {
-
   }
 
   private updateCamera() {
@@ -103,23 +119,49 @@ export class Player extends TransformNode {
     const move = correctedHorizontal.addInPlace(correctedVertical);
     this.moveDirection = new Vector3(move.normalize().x, 0, move.normalize().z);
 
-    const inputAmplitude = this.inputMagnitude()
+    const inputAmplitude = this.inputMagnitude();
 
-    this.moveDirection = this.moveDirection.scaleInPlace(inputAmplitude * Player.CONSTANTS.SPEED);
+    this.moveDirection = this.moveDirection.scaleInPlace(
+      inputAmplitude * Player.CONSTANTS.SPEED
+    );
 
-    const input = new Vector3(this.playerInput.horizontalAxis, 0, this.playerInput.verticalAxis);
+    this.jump();
+
+    const input = new Vector3(
+      this.playerInput.horizontalAxis,
+      0,
+      this.playerInput.verticalAxis
+    );
     if (input.length() === 0) return;
 
     this.updateRotation();
   }
 
   private updateRotation() {
-    let angle = Math.atan2(this.playerInput.horizontalAxis, this.playerInput.verticalAxis);
+    let angle = Math.atan2(
+      this.playerInput.horizontalAxis,
+      this.playerInput.verticalAxis
+    );
     angle += this.cameraRoot.rotation.y;
     const target = Quaternion.FromEulerAngles(0, angle, 0);
     this.playerMesh.rotationQuaternion = Quaternion.Slerp(
-      this.playerMesh.rotationQuaternion!, target, 10 * this.scene.deltaTime
-    )
+      this.playerMesh.rotationQuaternion!,
+      target,
+      10 * this.deltaTime
+    );
+  }
+
+  private jump() {
+    if (this.playerInput.jumping && this.jumpCount > 0) {
+      this.playerMesh.physicsImpostor?.setLinearVelocity(
+        new Vector3(0, Player.CONSTANTS.JUMP_FORCE, 0)
+      );
+      this.jumpCount--;
+    }
+
+    if (this.isGrounded) {
+      this.jumpCount = Player.CONSTANTS.JUMPS;
+    }
   }
 
   /**
@@ -132,8 +174,28 @@ export class Player extends TransformNode {
     } else if (inputMag > 1) {
       return 1;
     }
-    
+
     return inputMag;
+  }
+
+  private floorRaycast(offset: Vector3, raycastLength: number) {
+    const raycastFloorPosition = new Vector3(
+      this.playerMesh.position.x + offset.x,
+      this.playerMesh.position.y - .26,
+      this.playerMesh.position.z + offset.z
+    );
+
+
+    const ray = new Ray(raycastFloorPosition, Vector3.Up().scale(-1), raycastLength);
+    const pick = this.scene.pickWithRay(
+      ray,
+      (mesh) => mesh.isPickable && mesh.isEnabled()
+    );
+    if (pick?.hit) {
+      return pick.pickedPoint as Vector3;
+    }
+
+    return Vector3.Zero();
   }
 }
 
@@ -142,6 +204,8 @@ export namespace Player {
     ORIGINAL_TILT: new Vector3(0.4, 0, 0),
     CAMERA_FOV: 0.47350045992678597,
     CAMERA_DISTANCE: -15,
-    SPEED: .1
+    SPEED: 0.1,
+    JUMPS: 2,
+    JUMP_FORCE: 10,
   };
 }

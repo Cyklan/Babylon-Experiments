@@ -1,7 +1,6 @@
-import { CannonJSPlugin, Color4, Engine, HemisphericLight, Mesh, PhysicsImpostor, Scene, Vector3, WebGPUEngine } from "@babylonjs/core";
+import { CannonJSPlugin, Color3, Color4, Engine, HemisphericLight, Mesh, Scene, Vector3, WebGPUEngine } from "@babylonjs/core";
 import "@babylonjs/core/Debug/debugLayer";
 import "@babylonjs/inspector";
-import CANNON from "cannon";
 import { Player } from "./player";
 
 export default class App {
@@ -30,17 +29,15 @@ export default class App {
     this.scene = new Scene(this.engine);
     this.scene.clearColor = new Color4(0.42, 0.68, 0.81, 1.0);
 
-    this.scene.enablePhysics(new Vector3(0, -9.81, 0), new CannonJSPlugin(true, 10, CANNON));
-
     const light = new HemisphericLight("light", new Vector3(0, 1, 0), this.scene);
-    light.intensity = .7;
+    light.intensity = 1;
 
     const ground = Mesh.CreateGround("ground", 30, 30, 2, this.scene);
-    ground.physicsImpostor = new PhysicsImpostor(ground, PhysicsImpostor.BoxImpostor, { mass: 0, restitution: .9 }, this.scene);
 
     document.getElementById("renderer-overlay")!.innerHTML += this.renderer;
 
     this.player = new Player("player", this.scene);
+    await this.player.init();
 
     this.registerInspector()
     this.main();

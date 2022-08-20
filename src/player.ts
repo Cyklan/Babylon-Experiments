@@ -1,7 +1,8 @@
 import {
+  AbstractMesh,
   Color3,
   Mesh,
-  PhysicsImpostor,
+  Particle,
   Quaternion,
   Ray,
   Scene,
@@ -10,15 +11,16 @@ import {
   UniversalCamera,
   Vector3,
 } from "@babylonjs/core";
+import AssetImporter from "./AssetImporter";
 import PlayerInput from "./playerInput";
 
 export class Player extends TransformNode {
   scene: Scene;
-  playerMesh!: Mesh;
+  playerMesh!: AbstractMesh;
   cameraRoot!: TransformNode;
   yTilt!: TransformNode;
   camera!: UniversalCamera;
-  playerInput: PlayerInput;
+  playerInput!: PlayerInput;
 
   moveDirection = Vector3.Zero();
   horizontal = 0;
@@ -26,21 +28,29 @@ export class Player extends TransformNode {
 
   jumpCount = Player.CONSTANTS.JUMPS;
 
+  dingi?: Mesh;
+
   get deltaTime() {
     return this.scene.getEngine().getDeltaTime() / 1000.0;
   }
 
   get isGrounded() {
-    return !this.floorRaycast(Vector3.Zero(), 1).equals(Vector3.Zero());
-
+    return !this.floorRaycast(new Vector3(0, .3, 0), .5).equals(Vector3.Zero());
   }
 
   constructor(name: string, scene: Scene) {
     super(name);
     this.scene = scene;
-    this.initPlayer();
+  }
+
+  public async init() {
+    this.scene.getEngine().displayLoadingUI();
+
+    await this.initPlayer();
     this.initCamera();
     this.playerInput = new PlayerInput(this.scene);
+
+    this.scene.getEngine().hideLoadingUI();
 
     this.scene.registerBeforeRender(() => {
       this.beforeRender();
@@ -50,18 +60,11 @@ export class Player extends TransformNode {
     this.scene.registerAfterRender(this.afterRender);
   }
 
-  private initPlayer() {
-    this.playerMesh = Mesh.CreateBox("BOX", .5, this.scene);
-    this.playerMesh.position.y = 0.5;
-    this.playerMesh.physicsImpostor = new PhysicsImpostor(
-      this.playerMesh,
-      PhysicsImpostor.BoxImpostor,
-      { mass: 1, restitution: 0 },
-      this.scene
-    );
-    const material = new StandardMaterial("playerMaterial", this.scene);
-    material.diffuseColor = new Color3(1, 0, 1);
-    this.playerMesh.material = material;
+  private async initPlayer() {
+    const playerMesh = await AssetImporter.firetruck
+    console.debug(playerMesh)
+    playerMesh.parent = this;
+    this.playerMesh = playerMesh;
   }
 
   private initCamera() {
@@ -88,9 +91,15 @@ export class Player extends TransformNode {
   private beforeRender() {
     this.updatePosition();
     this.playerMesh.moveWithCollisions(this.moveDirection);
+    // this.dingi = Mesh.CreateSphere("dingi", 10, .1, this.scene);
+    // this.dingi.material = new StandardMaterial("dingi-material", this.scene);
+    // (this.dingi.material as StandardMaterial).diffuseColor = new Color3(1, 0, 0);
+    // this.dingi.position.copyFrom(this.playerMesh.position);
+
   }
 
   private afterRender() {
+    this.dingi?.dispose(false);
   }
 
   private updateCamera() {
@@ -152,16 +161,6 @@ export class Player extends TransformNode {
   }
 
   private jump() {
-    if (this.playerInput.jumping && this.jumpCount > 0) {
-      this.playerMesh.physicsImpostor?.setLinearVelocity(
-        new Vector3(0, Player.CONSTANTS.JUMP_FORCE, 0)
-      );
-      this.jumpCount--;
-    }
-
-    if (this.isGrounded) {
-      this.jumpCount = Player.CONSTANTS.JUMPS;
-    }
   }
 
   /**
@@ -181,12 +180,15 @@ export class Player extends TransformNode {
   private floorRaycast(offset: Vector3, raycastLength: number) {
     const raycastFloorPosition = new Vector3(
       this.playerMesh.position.x + offset.x,
-      this.playerMesh.position.y - .26,
+      this.playerMesh.position.y + offset.y,
       this.playerMesh.position.z + offset.z
     );
 
-
-    const ray = new Ray(raycastFloorPosition, Vector3.Up().scale(-1), raycastLength);
+    const ray = new Ray(
+      raycastFloorPosition,
+      Vector3.Up().scale(-1),
+      raycastLength
+    );
     const pick = this.scene.pickWithRay(
       ray,
       (mesh) => mesh.isPickable && mesh.isEnabled()
